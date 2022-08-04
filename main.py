@@ -1,4 +1,118 @@
-import time
+import simple_websocket
+import os
+from flask import Flask, request, send_from_directory
+from h2o_nitro import View, box, option, row, col, Theme
+from h2o_nitro_web import web_directory
+from pymongo import MongoClient
+from dotenv import load_dotenv
+
+load_dotenv()
+
+client = MongoClient(
+    os.getenv("MONGO_HOST"),
+)
+
+db = client['test-database']
+user_db = db['user_data']
+encrypt_db = db['encrypt_data']
+
+themes = [
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#ef5350',
+        accent_color_name='red',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#ec407a',
+        accent_color_name='pink',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#ab47bc',
+        accent_color_name='violet',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#7e57c2',
+        accent_color_name='purple',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#5c6bc0',
+        accent_color_name='indigo',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#42a5f5',
+        accent_color_name='blue',
+    ),
+    Theme(
+        background_color='#3e3f4a',
+        foreground_color='#fff',
+        accent_color='#29b6f6',
+        accent_color_name='sky',
+    ),
+    Theme(
+        background_color='#3e3f4a',
+        foreground_color='#fff',
+        accent_color='#26c6da',
+        accent_color_name='cyan',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#26a69a',
+        accent_color_name='teal',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#66bb6a',
+        accent_color_name='green',
+    ),
+    Theme(
+        background_color='#3e3f4a',
+        foreground_color='#fff',
+        accent_color='#d4e157',
+        accent_color_name='lime',
+    ),
+    Theme(
+        background_color='#3e3f4a',
+        foreground_color='#fff',
+        accent_color='#ffee58',
+        accent_color_name='yellow',
+    ),
+    Theme(
+        background_color='#3e3f4a',
+        foreground_color='#fff',
+        accent_color='#ffca28',
+        accent_color_name='amber',
+    ),
+    Theme(
+        background_color='#3e3f4a',
+        foreground_color='#fff',
+        accent_color='#ffa726',
+        accent_color_name='orange',
+    ),
+    Theme(
+        background_color='#fff',
+        foreground_color='#3e3f4a',
+        accent_color='#ff7043',
+        accent_color_name='lava',
+    ),
+]
+
+theme_lookup = {theme.accent_color_name: theme for theme in themes}
+theme_names = list(theme_lookup.keys())
+theme_names.sort()
+theme_name = theme_names[12]
 
 sbox = [
     [
@@ -66,7 +180,6 @@ sbox = [
         "0f", "b0", "54", "bb", "16"
     ]
 ]
-
 
 
 def converttobinary(a):
@@ -148,101 +261,202 @@ def decode(arr):
     return decoded_string
 
 
-def print_string(s):
-    print("--------------------ENCRYPTED/DECRYPTED STRING-------------------")
-    print()
-    print(s)
-    print()
+key = 100
 
 
-def store_decoded_str(s):
-    fd = open("decode.dec", mode="w")
-    fd.write(s)
-    fd.close()
+class Login:
+    def __init__(self, name, email, region) -> None:
+        self.email = email
+        self.name = name
+        self.region = region
 
 
-def store_encoded_str(s):
-    fd = open("encode.enc", mode="w")
-    fd.write(s)
-    fd.close()
+class State:
+    def __init__(self) -> None:
+        self.login = Login("Zaid", "example@mail.com", "Asia")
 
 
-key = int(input("Enter key: "))
+def main(view: View):
+    view.set(theme=theme_lookup.get("teal"))
+    view.context['state'] = State()
+    setTheme, damn = view(
+        '''
+        # Upgrade Cipher
+        ---
+        - Enter the data
+        - Encryption
+        - Decryption
 
-encoded_str = ""
-decoded_str = ""
-choice = -1
+        Choose an option that best suits your situation.
+        ''',
+        box('Pick a theme', value=theme_name, options=theme_names),
+        box([
+            option('create-account', 'Create Account',
+                   caption="Create Account to login further", selected=True),
+            option('login', 'Login', caption="Login to continue"),
+        ])
+    )
 
-print("|-------------------ENCRYPTION/DECRYPTION--------------------|")
-print("|  Choose your option:                                       |")
-print("|  Press 1 to enter the data                                 |")
-print("|  Press 2 to enter the file name                            |")
-print("|  press 3 for encryption                                    |")
-print("|  press 4 for decryption                                    |")
-print("|  press 5 to exit                                           |")
-print("|------------------------------------------------------------|")
-"""file handeling code for decoding check if file exist and it is not empty"""
+    view.set(theme=theme_lookup.get(setTheme))
 
-while choice != 5:
+    print(damn)
 
-    choice = int(input("ENTER CHOICE: "))
-    # print(choice)
-    print()
-    start_time = time.time()
+    if damn == "create-account":
+        name, email, password, region, action = view(
+            '''
+            # Create your account
 
-    if (choice == 1):
-        y = input("Enter your data: ")
-        f = open("your_data.txt", mode="w")
-        f.write(y)
-        f.close()
-        f = open("your_data.txt", mode="r")
-        data = f.read()
-
-    elif (choice == 2):
-        y = input("Enter file name:  ")
-        f = open(y, mode="r")
-        data = f.read()
-
-    elif choice == 3:
-
-        print("ENCRPTING DATA ...")
-        # call encryption function
-
-        encoded_str = encode(data)
-        print_string(encoded_str)
-        print(
-            "---------------ENCRYPTED FILE SAVED IN THE DIRECTORY-------------------"
+            ''',
+            box('Full name', placeholder='Boaty McBoatface'),
+            row(
+                box('Email', placeholder='you@company.com', icon='Mail'),
+                box('Password', value='pa55w0rd', password=True)
+            ),
+            box('Region', mode='menu', options=[
+                'Africa', 'Asia', 'Australia', 'Europe', 'North America', 'South America',
+            ]),
+            box(['Create'])
         )
-        print()
-        print("--- Time to encrypt %s seconds ---" %
-              (time.time() - start_time))
-        store_encoded_str(encoded_str)
-        print()
-        print("-------------------------------------------------------------")
-        print()
-        print("To decrypt press 4")
-        print()
 
-    elif choice == 4:
-        # call decryption function
-        print("DECRYPTING STRING PLEASE WAIT...")
-        print()
-        if len(encoded_str) == 0:
-            print("encrypt the data first then decrypt!! try again!!")
-            break
+        # create a dictionary of the user's input
+        user_input = {
+            "username": name,
+            "email": email,
+            "password": encode(password),
+            "region": region
+        }
 
-        decoded_str = decode(encoded_str)
-        print_string(decoded_str)
-        print("---------------SAVING DECRYPTED FILE-------------------")
-        print()
-        print("--- Time to decrypt %s seconds ---" %
-              (time.time() - start_time))
-        store_decoded_str(decoded_str)
-        print()
-        print("-------------------------------------------------------------")
-        print()
+        # store the user's input to a mongodb collection
+        id = user_db.insert_one(user_input).inserted_id
+        print(id)
 
-    elif choice == 5:
-        break
-    else:
-        print("Entered wrong choice!!try again!!")
+    email_1, password1 = view(
+        '''
+        # Login
+        ---
+
+        - Enter your email
+        - Enter your password
+        ''',
+        box('Email', placeholder="example@mail.com"),
+        box('Password', value='pa55w0rd', password=True)
+    )
+    # get the user's input from the mongodb collection
+    returndb = user_db.find_one(filter={"email": email_1})
+
+    print(returndb["username"])
+
+    name_re, email_re, password_re, region_re = returndb["username"], returndb[
+        "email"], returndb["password"], returndb["region"]
+
+    decoded_str = decode(password_re)
+
+    if email_1 != email_re and password1 != decoded_str and email_1 == "":
+        view(
+            """
+            # Error
+            ---
+            - Invalid email or password
+            """, mode="md"
+        )
+
+    view.context['state'].login = Login(name_re, email_1, region_re)
+
+    view.jump(afterLogin)
+
+
+def encrypt(view: View):
+    email: Login = view.context['state'].login.email
+    thetext = view(f'''
+    # Encryption
+    ---
+    ''',
+                   box('Enter the data to be encrypted',
+                       placeholder='I hate Apples!')
+                   )
+
+    e_data = {
+        "email": email,
+        "data": encode(thetext)
+    }
+
+    encrypt_db.insert_one(e_data)
+
+    view.jump(afterLogin)
+
+
+def decrypt(view: View):
+    email: Login = view.context['state'].login.email
+    re_endb = encrypt_db.find(filter={"email": email})
+    # create a string which appends all the data in the collection
+    final_str = " "
+    for i, data in enumerate(re_endb):
+        final_str += str(i) + ") " + decode(data["data"]) + "\n"
+
+    view(
+        '''
+        # Showing the data
+        ---
+        ''',
+        box(f'{final_str}')
+    )
+
+    view.jump(afterLogin)
+
+
+def afterLogin(view: View):
+    name: Login = view.context['state'].login.name
+    region: Login = view.context['state'].login.region
+    action = view(
+        f'''
+        # Welcome
+        ---
+        - Welcome to the world of encryption, {name}
+        - You are logged in from {region}
+        ''',
+        box([
+            option('encrypt', 'Encrypt',
+                   caption="Encrypt and store personal data", selected=True),
+            option('decrypt-view', 'View data',
+                   caption="View your personal data"),
+        ])
+    )
+
+    if action == "encrypt":
+        view.jump(encrypt)
+    if action == "decrypt-view":
+        view.jump(decrypt)
+
+
+nitro = View(
+    main,
+    title='Upgrade Cipher!',
+    caption='v1.0',
+    routes=[
+        option(afterLogin),
+        option(encrypt),
+        option(decrypt)
+    ]
+)
+
+
+app = Flask(__name__, static_folder=web_directory, static_url_path='')
+
+
+@app.route('/')
+def home_page():
+    return send_from_directory(web_directory, 'index.html')
+
+
+@app.route('/nitro', websocket=True)
+def socket():
+    ws = simple_websocket.Server(request.environ)
+    try:
+        nitro.serve(ws.send, ws.receive)
+    except simple_websocket.ConnectionClosed:
+        pass
+    return ''
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=3000, host="0.0.0.0")
