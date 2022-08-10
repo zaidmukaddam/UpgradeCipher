@@ -1,10 +1,28 @@
+# ===
+# About: Upgrade Cipher
+# Author: Zaid Mukaddam <zaidmukaddam@proton.me>
+# Keywords: [basic, flask]
+#
+# Setup:
+# FILE requirements.txt EOF
+# flask
+# simple-websocket
+# h2o-nitro[web]
+# EOF
+# RUN python -m pip install -r requirements.txt
+# ENV FLASK_APP main.py
+# ENV FLASK_ENV development
+# START python -m flask run
+# ===
+
 import simple_websocket
 import os
 from flask import Flask, request, send_from_directory
-from h2o_nitro import View, box, option, row, col, Theme
+from h2o_nitro import View, box, option, row, Theme, header
 from h2o_nitro_web import web_directory
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -15,104 +33,6 @@ client = MongoClient(
 db = client['test-database']
 user_db = db['user_data']
 encrypt_db = db['encrypt_data']
-
-themes = [
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#ef5350',
-        accent_color_name='red',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#ec407a',
-        accent_color_name='pink',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#ab47bc',
-        accent_color_name='violet',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#7e57c2',
-        accent_color_name='purple',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#5c6bc0',
-        accent_color_name='indigo',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#42a5f5',
-        accent_color_name='blue',
-    ),
-    Theme(
-        background_color='#3e3f4a',
-        foreground_color='#fff',
-        accent_color='#29b6f6',
-        accent_color_name='sky',
-    ),
-    Theme(
-        background_color='#3e3f4a',
-        foreground_color='#fff',
-        accent_color='#26c6da',
-        accent_color_name='cyan',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#26a69a',
-        accent_color_name='teal',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#66bb6a',
-        accent_color_name='green',
-    ),
-    Theme(
-        background_color='#3e3f4a',
-        foreground_color='#fff',
-        accent_color='#d4e157',
-        accent_color_name='lime',
-    ),
-    Theme(
-        background_color='#3e3f4a',
-        foreground_color='#fff',
-        accent_color='#ffee58',
-        accent_color_name='yellow',
-    ),
-    Theme(
-        background_color='#3e3f4a',
-        foreground_color='#fff',
-        accent_color='#ffca28',
-        accent_color_name='amber',
-    ),
-    Theme(
-        background_color='#3e3f4a',
-        foreground_color='#fff',
-        accent_color='#ffa726',
-        accent_color_name='orange',
-    ),
-    Theme(
-        background_color='#fff',
-        foreground_color='#3e3f4a',
-        accent_color='#ff7043',
-        accent_color_name='lava',
-    ),
-]
-
-theme_lookup = {theme.accent_color_name: theme for theme in themes}
-theme_names = list(theme_lookup.keys())
-theme_names.sort()
-theme_name = theme_names[12]
 
 sbox = [
     [
@@ -199,23 +119,18 @@ def oc(c):
 def division(k):
     val1 = ""
     val2 = ""
-
     for i in range(len(k)):
         if (i <= 3):
             val1 += k[i]
         else:
             val2 += k[i]
-
     a = int(val1, 2)
     b = int(val2, 2)
-
     return (sbox[a][b])
 
 
 def encode(data):
-
     arr = ""
-
     for i in range(len(data)):
         x = converttobinary(data[i])
         arr += x
@@ -277,9 +192,16 @@ class State:
 
 
 def main(view: View):
-    view.set(theme=theme_lookup.get("teal"))
+    view.set(
+        theme=Theme(
+            background_color='#fff',
+            foreground_color='#3e3f4a',
+            accent_color='#42a5f5',
+            accent_color_name='blue',
+        )
+    )
     view.context['state'] = State()
-    setTheme, damn = view(
+    damn = view(
         '''
         # Upgrade Cipher
         ---
@@ -289,17 +211,15 @@ def main(view: View):
 
         Choose an option that best suits your situation.
         ''',
-        box('Pick a theme', value=theme_name, options=theme_names),
-        box([
-            option('create-account', 'Create Account',
+        # box('Pick a theme', value=theme_name, options=theme_names),
+        box(
+            [
+                option('create-account', 'Create Account',
                    caption="Create Account to login further", selected=True),
-            option('login', 'Login', caption="Login to continue"),
-        ])
+                option('login', 'Login', caption="Login to continue"),
+            ],
+        )
     )
-
-    view.set(theme=theme_lookup.get(setTheme))
-
-    print(damn)
 
     if damn == "create-account":
         name, email, password, region, action = view(
@@ -327,8 +247,7 @@ def main(view: View):
         }
 
         # store the user's input to a mongodb collection
-        id = user_db.insert_one(user_input).inserted_id
-        print(id)
+        user_db.insert_one(user_input)
 
     email_1, password1 = view(
         '''
@@ -339,24 +258,44 @@ def main(view: View):
         - Enter your password
         ''',
         box('Email', placeholder="example@mail.com"),
-        box('Password', value='pa55w0rd', password=True)
+        box('Password', placeholder='pa55w0rd', password=True)
     )
-    # get the user's input from the mongodb collection
-    returndb = user_db.find_one(filter={"email": email_1})
 
-    print(returndb["username"])
+    while email_1 == "":
+        email_1 = view(
+            "Please enter your email",
+            box('Email', placeholder="example@mail.com"),
+            popup=True
+        )
+        # password validation with regex for 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+        if password1 == "" or re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', password1) is None:
+            password1 = view(
+                "Please enter your password",
+                box('Password', placeholder='pa55w0rd', password=True),
+                popup=True
+            )
+
+    try:
+        # get the user's input from the mongodb collection
+        returndb = user_db.find_one(filter={"email": email_1})
+    except:
+        view("No account found")
+        view.jump(main)
 
     name_re, email_re, password_re, region_re = returndb["username"], returndb[
         "email"], returndb["password"], returndb["region"]
 
     decoded_str = decode(password_re)
 
-    if email_1 != email_re and password1 != decoded_str and email_1 == "":
+    # one line if condition to check if the user's input is correct
+    valid = password1 == decoded_str
+
+    if not valid and email_1 == email_re:
         view(
             """
             # Error
             ---
-            - Invalid email or password
+            - Invalid password
             """, mode="md"
         )
 
@@ -371,9 +310,11 @@ def encrypt(view: View):
     # Encryption
     ---
     ''',
-                   box('Enter the data to be encrypted',
-                       placeholder='I hate Apples!')
-                   )
+        box(
+            'Enter the data to be encrypted',
+            placeholder='I hate Apples!'
+        )
+    )
 
     e_data = {
         "email": email,
@@ -389,16 +330,23 @@ def decrypt(view: View):
     email: Login = view.context['state'].login.email
     re_endb = encrypt_db.find(filter={"email": email})
     # create a string which appends all the data in the collection
-    final_str = " "
+    f = {}
     for i, data in enumerate(re_endb):
-        final_str += str(i) + ") " + decode(data["data"]) + "\n"
+        f[i] = data["data"]
 
     view(
         '''
         # Showing the data
-        ---
         ''',
-        box(f'{final_str}')
+        box(
+            mode='table',
+            headers=[
+                header('S.No'), header('Data', width=400)
+            ],
+            options=[
+                option(str(i), options=(str(i+1), decode(f[i]))) for i in f
+            ]
+        )
     )
 
     view.jump(afterLogin)
@@ -433,6 +381,7 @@ nitro = View(
     title='Upgrade Cipher!',
     caption='v1.0',
     routes=[
+        option(main),
         option(afterLogin),
         option(encrypt),
         option(decrypt)
