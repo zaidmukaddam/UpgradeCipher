@@ -238,6 +238,10 @@ def main(view: View):
             box(['Create'])
         )
 
+        if password == "" or re.match(r"(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$", password) == None:
+            view("Password must be at least 10 characters long and must contain at least one uppercase letter, one lowercase letter, one number and one special character")
+            view.jump(main)
+
         # create a dictionary of the user's input
         user_input = {
             "username": name,
@@ -267,10 +271,10 @@ def main(view: View):
             box('Email', placeholder="example@mail.com"),
             popup=True
         )
-        # password validation with regex for 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-        if password1 == "" or re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', password1) is None:
+        # password validation with regex for 10 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+        if password1 == "" or re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{10,}$', password1) is None:
             password1 = view(
-                "Please enter your password",
+                "Please enter a valid password",
                 box('Password', placeholder='pa55w0rd', password=True),
                 popup=True
             )
@@ -298,6 +302,7 @@ def main(view: View):
             - Invalid password
             """, mode="md"
         )
+        view.jump(main)
 
     view.context['state'].login = Login(name_re, email_1, region_re)
 
